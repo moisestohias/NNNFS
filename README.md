@@ -1,31 +1,51 @@
-# MoisesNNFS 💞: The 🔥 tiniest/fastest DL framework in pure numpy 💨
+# NeeDL 💞: 
+The **tiniest**/**fastest** 🔥 DL framework in **pure Numpy** 💨
 
 >⚠️ Warning: In progress.
 
-### What is this: My attempt to write a tiny fast comprehensive DL framework from scratch in pure Numpy.
-### Why? Golden Rule: You wont understand how something work till you make it by yourself.
-### Why this is the best: After I started working on this project, I've found there are many other people already worked on this same idea (shit probably I need to site them all for credibility), but as I've digged into the code, to see how they are implmening things, I found that:
++ What is this? My attempt to write a **tiny & fast** comprehensive DL framework from scratch in **pure Numpy**.
++ Why? Golden Rule: You wont understand how something work till you make it by yourself.
++ **Why this is the best**? After I started working on this project, I've found there are many other people already worked on this same idea (shit probably I need to site them all for credibility), but as I've digged into the code, to see how they are implmening things, I found that:
 + Extremeley slow, due to use of loops,
 + The code base is really complicated and much long then it needs to be.
 + They deviating on the standard convention of beloved libararies (ofcourse Pytorch), this include naming convention, arguments,  way of building models...
 + Incomplete
 + ...
 
+# Design philosophy:
++ 🥇 Modularity: Everything should be modular and independent, this goes for layers, activation functions, losses, optimizers...
++ Simplicity: the code must remain simple, easy to read as much as possible, 
++ Efficiency: is not the star of the show here, but I've trying to optimize the code as much as possible without violation the second design philosophy (Simplicity)
+
+# Convention:
+
+## Naming convention:
+Fuck, we need to work on this
+MBS: MiniBatchSize
+LR: learning_rate
+inF, outF, inShape, outShape,
++ Functional: mse/mseP, cross_entropy/cross_entropyP/
+    p: y_pred : predicted/probability
+    y: y_truth: target 
+
+
+# Layers:
+`Linear(inF, outF, bias)`
+outShape
+layers_name
+
+
+## Supported layers & operations:
+Note all layers are batched,
+Linear, Conv2d, (Conv1D to be added), BatchNorm, Dropout, Attention, Reshape, Flatten..
 
 
 ### Inspiration:
-+  [ML-From-scratch](github.com/eriklindernoren/ML-From-Scratch) by [Erik Linder-Norén](github.com/eriklindernoren)
-+ The super elegant and simple implementation [python-neural-networks
-](github.com/OmarAflak/python-neural-networks) by [Omar Aflak](github.com/OmarAflak?tab=repositories)
++ [ML-From-scratch](github.com/eriklindernoren/ML-From-Scratch)
++ [python-neural-networks ](github.com/OmarAflak/python-neural-networks)
 
 ### Challenges:
-+ before I dicided to follow pytorch convention, 😶 The biggest challenge was not just how to implement operations (but honnestly yes it is), but how to organize the code, such that the implementation won't come back to bite you later down the line.
-
-# Design philosophy:
-+ 🥇 Modularity: everything should be modular and independent, this goes for layers, activation functions, losses, optimizers...
-+ Simplicity: the code must remain simple, easy to read as much as possible, 
-+ Efficiency: is not the start of the show here, but I've trying to optimize the code as much as possible without violation the second design philosophy (Simplicity)
-
++ Before I dicided to follow pytorch convention, 😶 the biggest challenge was not just how to implement operations (but honnestly yes it is), but how to organize the code, such that the implementation won't come back to bite you later down the line.
 
 ## Main Components:
 + Network: A container for the layers, takes in: optimizes, loss
@@ -56,16 +76,6 @@ Doesn't matter how they are represented, you're going to perform the transpose d
 The optimization part is performed by the optimizer (updating the net parameters )
 
 
-## Naming convention:
-all names are underscore separated.
-    losses: 
-    Activation: mse/mse_prime, cross_entropy/cross_entropy_prime/
-    p: y_pred : predicted/probability
-    y: y_truth: target 
-
-    input_size
-    output_size
-    layers_name
 
 ## Guidlines:
 + \__init\__ methods should never raise NotImplmentedErrro 
@@ -87,14 +97,8 @@ from MoisesNNFS.opimizers import SGD
 from MoisesNNFS.Network import Network
 from MoisesNNFS.utils import MNIST, Batcher
 
-
-"""
-MBS: MiniBatchSize
-LR:learning_rate
-"""
-
-optimizer=SGD(LR=0.001, epochs=20, MBS=32)
-MLP = Network(, loss=MSE())
+optim = SGD(LR=0.001, epochs=20, MBS=32)
+MLP = Network(optim, loss=MSE())
 MLP.add(Reshape(np.product(data.shape),1), (data.shape))
 MLP.add(Dense(100))
 MLP.add(Tanh())
