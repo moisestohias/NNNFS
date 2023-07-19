@@ -1,7 +1,7 @@
 import numpy as np
 import torch.nn.functional as F
 import torch
-# as_strided = np.lib.stride_tricks.as_strided
+as_strided = np.lib.stride_tricks.as_strided
 
 
 def maxpool2d(x):
@@ -26,16 +26,16 @@ def unmaxpool2d(ZP, indx, OrigShape, grad_output=None):
 np.random.seed(12)
 Z = np.random.randint(1,10, (1,1,6,6)).astype(np.float32)
 ZP, Indx, OutShape  = maxpool2d(Z)
-# print(Z)
-print(ZP.shape)
-# TZP = F.max_pool2d(torch.as_tensor(Z), (2,2)).numpy()
-mask = unmaxpool2d(ZP, Indx, OutShape)
-print(mask.shape)
-print(ZP)
 print(Z)
+print(ZP)
+TZP = F.max_pool2d(torch.as_tensor(Z), (2,2)).numpy()
+mask = unmaxpool2d(ZP, Indx, OutShape)
+# print(mask.shape)
+print(ZP)
+# print(Z)
 print(mask)
 
-Z[mask]
+# Z[mask]
 # top_grad = np.random.randn(*ZP.shape)
 # ZUnp = backward_maxpool2d(top_grad, Indx, ZP, (2,2))
 

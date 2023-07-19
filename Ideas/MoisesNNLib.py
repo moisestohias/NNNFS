@@ -1,5 +1,10 @@
 # MoisesNNLib-Doc.py
 
+a = z@w
+da/dw = z.T # wGrad = z.T.dot(topGrad)
+da/dz = w.T # zGrad = np.dot(topGrad, w.T)
+
+
 """
 Design philosophy:
 Activation function also are treated as layer,

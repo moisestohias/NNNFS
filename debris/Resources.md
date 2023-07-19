@@ -1,8 +1,8 @@
 # Resources.md
 
-https://stackoverflow.com/questions/7656665/how-to-repeat-elements-of-an-array-along-two-axes
-stackoverflow.com/questions/32846846/quick-way-to-upsample-numpy-array-by-nearest-neighbor-tiling
-# MaxPooling
+$$Hout = \lfloor \frac{Hin +2∗padding[0]−dilation[0]×(kernelSize[0]−1)−1}{stride[0]} +1 \rfloor$$
+$$Wout = \lfloor \frac{Win +2∗padding[1]−dilation[1]×(kernelSize[1]−1)−1}{stride[1]} +1 \rfloor$$
+
 
 Pytorch's max_unpool2d function is used to reverse the effects of max_pool2d. This is done by taking the maximum value from the pooling window, and copying it to the corresponding position in the original input tensor.
 

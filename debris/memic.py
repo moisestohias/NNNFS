@@ -1,11 +1,7 @@
 from utils.utils import MNIST, Batcher, one_hot_batch
 import itertools
-import pickle, gzip
-import tqdm
-from tqdm import trange
-import sys
 import numpy as np
-
+from utils import loadMnist
 
 def sigmoid(x): return 1.0 / (1 + np.exp(-x))
 def backward_sigmoid(top_grad, inp_sigmoid): return top_grad * inp_sigmoid * (1 - inp_sigmoid)
@@ -211,16 +207,6 @@ class Network:
 
 
 # ================================================================
-def load_data():
-    (trainx, trainy), (valx, valy), (testx, testy) = pickle.load(gzip.open(r"D:\DS\NNDS\mnist_one_hot.pkl.gz"),
-                                                                 encoding="latin1")
-    trainy = np.argmax(trainy, axis=1)
-    valy = np.argmax(valy, axis=1)
-    testy = np.argmax(testy, axis=1)
-    trainx = trainx * 2 - 1
-    valx = valx * 2 - 1
-    testx = testx * 2 - 1
-    return (trainx.reshape(-1, 28*28), trainy), (valx.reshape(-1, 28*28), valy), (testx.reshape(-1, 28*28), testy)
 
 def train_classifier(data, n_iters=1, batch_size=100):
     print(f'Training NN classifier for {n_iters} iterations.')

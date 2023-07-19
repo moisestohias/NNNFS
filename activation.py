@@ -66,7 +66,6 @@ def softplusP(limit=20, beta=1.0): _s = np.exp(x*beta) ; return (beta*_s)/(1+_s)
 def relu6(x): return relu(x)-relu(x-6)
 def relu6P(x): return reluP(x)-reluP(x-6)
 
-
 class Sigmoid(Activation):
   def __init__(self): super().__init__(sigmoid, sigmoidP)
 class Relu(Activation):

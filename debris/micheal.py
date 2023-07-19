@@ -1,29 +1,5 @@
 import numpy as np
 
-def one_hot(a, classes=10): return np.eye(classes)[a].reshape(-1,10,1)
-
-def loadMnist(path=None):
-    import pickle, gzip, os
-    if path is None: 
-        path = "/media/moises/D/DLDS" if os.name == "posix" else "D/DLDS" # Nix or Win
-    url = 'https://github.com/mnielsen/neural-networks-and-deep-learning/raw/master/data/mnist.pkl.gz'
-    if not os.path.exists(os.path.join(path, "mnist.pkl.gz")):
-        with open(os.path.join(path, "mnist.pkl.gz"), "wb") as f:
-            mnistPKLGZ = requests.get(url).content
-            f.write(mnistPKLGZ)
-    with gzip.open(os.path.join(path, "mnist.pkl.gz"), "rb") as mn: 
-        tr, va, te = pickle.load(mn, encoding="latin-1")
-    return tr, va, te
-
-
-def handleMnist(tr, va, te):
-    tr, va, te = loadMnist()
-    tr = zip(tr[0].reshape(-1, 784, 1), one_hot(tr[1]))
-    va = zip(va[0].reshape(-1, 784, 1), va[1])
-    te = zip(te[0].reshape(-1, 784, 1), te[1])
-    return tr, va, te
-
-
 
 # Act
 def sig(z): return 1.0/(1.0+np.exp(-z))

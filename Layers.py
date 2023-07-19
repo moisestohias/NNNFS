@@ -5,10 +5,19 @@ import itertools
 from functional import *
 from utils.utils import Batcher, MNIST
 from activation import Relu
+
 """
+# TODO:
+
 >Note: buttom grad, is what mich refere to as the error, which what propagate backward through the net
 Naming convention: inShape, outShape, D:dilation, P: padding, S:stride, G:groups, Z:input, W:weight, B:bias, inF, outF
 Maybe we need to go back to more informative naming convention.
+
+
+Old convP: try this:
+wGrad = corr2d(self.input.transpose(1,0,2,3), output_gradient.transpose(1,0,2,3), "valid")
+zGrad   = conv2d(output_gradient, self.weights.transpose(1,0,2,3), "full")
+
 """
 
 
@@ -116,7 +125,8 @@ class MaxPool2d(Layer):
     def __init__(self, KS:tuple=(2,2), S=None, P=0, D=1, return_indices=False, ceil_mode=False, inShape=None):
         self.layers_name = self.__class__.__name__
         if isinstance(KS, int): self.KS = (KS, KS)
-        if inShape: self.outShape = inShape[0], inShape[1]//self.KS[0], inShape[2]//self.KS[1] # outShape:CHW -> C, ZH//KH, ZW//KW
+        if inShape: self.outShape = calculateConvOutShape(inShape, KS=KS, S=S, P, D=D)
+
     def forward(self,Z):
         MxP, Inx = maxpool2d(Z, KS)
         self.Inx = Inx
@@ -165,7 +175,7 @@ class LSTM(Layer):
         return c
 
     def backward(self, TopGrad):
-        zGrad, self.wGrad = lstmP(TopGrad, self.input, self.weight)
+        zGrad, self.wGrad = lstmP(TopGrad, self.input, c)
         return zGrad
 
 class SoftmaxCELayer(Layer):
@@ -184,7 +194,7 @@ class SoftmaxCELayer(Layer):
         return self.bottom_grad
 
 class Network:
-    def __init__(self):
+    def __init__(self):5
         self.layers = []
         self.params = []
         self.grads = []
@@ -222,55 +232,3 @@ class Network:
             v_hat = second_moment / (1 - beta_2 ** self.time_step)
             param -= alpha * m_hat / (np.sqrt(v_hat) + epsilon) + l2 * param
         self.time_step += 1
-
-
-if __name__ == "__main__":
-    # Z = np.random.randint(0,10, (2, 2, 6, 6))
-    # Z = np.random.randn(MBS, 1, 28, 28)
-
-    # C1 = Conv2d(Z.shape[1],10,5, inShape=Z.shape[-2:])
-    # bottomGrad = np.random.randn(*z.shape)
-    # C1.backward(bottomGrad)
-    # print(C1.grads[0].shape, C1.grads[1].shape)
-
-
-    model = Network()
-    Act = Relu()
-    C1 = Conv2d(1, 10, 5, inShape=(28,28))
-    C2 = Conv2d(10, 6, 5, inShape=C1.outShape[-2:])
-    C3 = Conv2d(6, 3, 5, inShape=C2.outShape[-2:])
-    F  = Flatten(C3.outShape)
-    D1 = Linear(F.outShape[-1],10)
-    # D2 = Linear(D1.outShape[-1],10)
-    SM = SoftmaxCELayer()
-
-    model.add(C1)
-    model.add(Act)
-    model.add(C2)
-    model.add(Act)
-    model.add(C3)
-    model.add(Act)
-    model.add(F)
-    model.add(D1)
-    model.add(Act)
-    # model.add(D2)
-    # model.add(Act)
-    model.add(SM)
-
-    MBS = 32
-    mnistTrain = Batcher(MNIST(Flat=False, OneHot=False), MBS)
-    for x, y in mnistTrain:
-        A = model.forward(x, y)
-        model.backward()
-        model.adam_trainstep()
-        break
-
-    #     correct = []
-    #     for x, y in Batcher(MNIST(Validation=True), MBS):
-    #         res = model.predict(x)
-    #         correct.append(np.argmax(res, axis=1) == y)
-    #     # print(len(correct))
-    #     print(f'Validation accuracy: {np.mean(correct)}')
-    #     print('-------------------------------------------------------')
-
-

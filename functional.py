@@ -14,7 +14,7 @@ def _affTransP(TopGrad, Z, W):
     Zgrad = TopGrad.dot(W.T)
     return Zgrad, WGrad, BGrad
 
-# Note: torch convention w(outF,inF), requiring forward: Z.dot(W.T)+B, and backward: TopGrad.T.dot(Z) & TopGrad.dot(W) instead.
+# Note: torch convention w(outF,inF), requiring forward: Z.dot(W.T)+B & backward: TopGrad.T.dot(Z) & TopGrad.dot(W).
 def affTrans(Z, W, B=0): return Z.dot(W.T) + B # W: (outF,inF)
 def affTransP(TopGrad, Z, W):
     BGrad = TopGrad.sum(axis=0)
@@ -44,6 +44,7 @@ def _pad(Z: np.ndarray, K: np.ndarray, mode: str="valid") -> np.ndarray:
     if np.array(padding).any(): Z = np.pad(Z, padding)
     return Z, K
 
+def calculateMaxpool2dOutShape(*a, **kw): return calculateConvOutShape(*a, **kw)
 def calculateConvOutShape(inShape, KS, S=(1,1), P=(0,0), D=(1,1)):
     Hin, Win = inShape
     Hout = floor(((Hin+2*P[0]-D[0]*(KS[0]-1)-1)/S[0]) +1)
@@ -120,6 +121,12 @@ def pool1d(Z, K:int=2, Pad=False):
     return as_strided(Z, shape=(N,C, W//K, K), strides=(Ns, Cs, Ws*K , Ws) )
 
 def pool2d(Z, K:tuple=(2,2), MustPad=False):
+    """ 
+    + TODO: We must suport stride (dilation!!)
+    Performs the windowing, and padding if needed
+    !Note: By default padding is set to False in most libs, Pytorch included
+    if there are pixels left just drop them. We may need to reconsider.
+    """
     KH, KW = K  # Kernel Height & Width
     N, C, ZH, ZW = Z.shape # Input: NCHW Batch, Channels, Height, Width
     Ns, Cs, Hs, Ws = Z.strides
@@ -131,10 +138,14 @@ def pool2d(Z, K:tuple=(2,2), MustPad=False):
         Z = np.pad(Z, ((0,0),(0,0), (PadTop, PadBottom), (PadLeft, PadRight)))
         N, C, ZH, ZW = Z.shape #NCHW
         Ns, Cs, Hs, Ws = Z.strides
-    Zstrided = as_strided(Z, shape=(N,C,ZH//KH, ZW//KW, KH, KW), strides=(Ns, Cs, Hs*KH, Ws*KW,Hs, Ws))
-    return Zstrided.reshape(N,C,ZH//KH, ZW//KW, KH*KW) # reshape to flatten pooling windows to be 1D-vector
+    outShape = (N,C,ZH//KH, ZW//KW, KH, KW)
+    Zstrided = as_strided(Z, shape=outShape, strides=(Ns, Cs, Hs*KH, Ws*KW,Hs, Ws))
+    return Zstrided.reshape(N,C,ZH//KH, ZW//KW, KH*KW) # reshape to flatten pool windows to 1D-vec
 
 def maxpool2d(Z, K:tuple=(2,2)):
+    """
+    + TODO: We need to return indx of flattened version for faster backward to avoid loops
+    """
     ZP = pool2d(Z, K)
     MxP = np.max(ZP, axis=(-1))
     Inx = np.argmax(ZP, axis=-1)
@@ -202,31 +213,6 @@ def mse_prime(y, p): return 2*(p-y)/np.prod(y.shape)
 # def mse_prime(p, y): return (y-p).mean()
 
 
-# Activations
-def sigmoid(x): return np.reciprocal((1.0+np.exp(-x)))
-def sigmoid_prime(x): s = np.reciprocal((1.0+np.exp(-x))); return s * (1 - s) # σ(x)*(1-σ(x))
-def relu(x): return np.where(x>= 0, x, 0)
-def relu_prime(x): return np.where(x>= 0, 1, 0)
-def leaky_relu(x, alpha=0.01): return np.where(x>= 0, x, alpha*x)
-def leaky_relu_prime(x, alpha=0.01): return np.where(x>= 0, 1, alpha)
-def elu(x, alpha=0.01): return np.where(x>= 0, x, alpha*(np.exp(x)-1))
-def elu_prime(x, alpha=0.01): return np.where(x>= 0, 1, alpha*np.exp(x))
-def swish(x): return x * np.reciprocal((1.0+np.exp(-x))) # x*σ(x) σ(x)+σ'(x)x : σ(x)+σ(x)*(1-σ(x))*x
-def swish_prime(x): s = np.reciprocal((1.0+np.exp(-x))); return s+s*(1-s)*x #σ(x)+σ(x)*(1-σ(x))*x
-silu, silu_prime = swish, swish_prime # The SiLU function is also known as the swish function.
-def tanh(x): return np.tanh(x) # or 2.0*(σ((2.0 * x)))-1.0
-def tanh_prime(x): return 1 - np.tanh(x) ** 2
-def gelu(x): return 0.5*x*(1+np.tanh(0.7978845608*(x+0.044715*np.power(x,3)))) # sqrt(2/pi)=0.7978845608
-def gelu_prime(x): return NotImplemented#Yet
-def quick_gelu(x): return x*sigmoid(x*1.702) # faster version but inacurate
-def quick_gelu_prime(x): return 1.702*sigmoid_prime(x*1.702)
-def hardswish(x): return x*relu(x+3.0)/6.0
-def hardswish_prime(x): return 1.0/6.0 *relu(x+3)*(x+1.0)
-def softplus(x, limit=20.0, beta=1.0): return (1.0/beta) * np.log(1 + np.exp(x*beta))
-def softplus_prime(limit=20, beta=1.0): _s = np.exp(x*beta) ; return (beta*_s)/(1+_s)
-def relu6(x): return relu(x)-relu(x-6)
-def relu6_prime(x): return relu_prime(x)-relu_prime(x-6)
-
 
 """
 # Test Conv
@@ -279,3 +265,15 @@ def backward_softmax_crossentropy(top_grad, inp_softmax, y):
     return top_grad * res / inp_softmax.shape[0]
 
 
+
+# Didn't test, Make sure this is correct: Kapathry Lect 3 youtu.be/P6sfmUTpUmc & 4 youtu.be/q8SA3rM6ckI
+def batchNormBackward(TopGrad, batchMean, batchVar, gama, beta):
+    N = TopGrad.shape[0]
+    Zhat = (TopGrad * gama)
+    Zhat_batchMean = Zhat / np.sqrt(batchVar)
+    Zhat_batchVar = np.sum(Zhat * (TopGrad * gama) * (-0.5) * ((batchVar + 1e-8) ** (-1.5)), axis=0)
+    Zhat_batchVar_X = 2 * (TopGrad * gama - batchMean / N) / N
+    Zgrad = Zhat_batchMean + Zhat_batchVar * Zhat_batchVar_X
+    BNgainGrad = np.sum(TopGrad * (TopGrad - batchMean) / np.sqrt(batchVar), axis=0)
+    BNbiasGrad = np.sum(TopGrad, axis=0)
+    return Zgrad, BNgainGrad, BNbiasGrad

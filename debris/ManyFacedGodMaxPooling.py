@@ -4,6 +4,18 @@ as_strided = np.lib.stride_tricks.as_strided
 
 
 def maxpool2d(image, pool_shape, dilation=1, stride=None):
+    if stride is None: stride = pool_shape
+    im_shape = image.shape
+    dilated_shape = ((pool_shape[0] - 1) * dilation + 1, (pool_shape[1] - 1) * dilation + 1)
+    res_shape = ((im_shape[2] - dilated_shape[0]) // stride[0] + 1, (im_shape[3] - dilated_shape[1]) // stride[1] + 1)
+    imrow = _im_to_rows(image, (1, im_shape[1]) + pool_shape, dilation, stride, dilated_shape, res_shape)
+    imrow = imrow.reshape((imrow.shape[0], imrow.shape[1], im_shape[1], -1))
+    maxpooled = np.max(imrow, axis=3).transpose((0, 2, 1))
+    maxpooled = maxpooled.reshape((maxpooled.shape[0], maxpooled.shape[1], res_shape[0], res_shape[1]))
+    max_indices = np.argmax(imrow, axis=3)
+    return maxpooled, max_indices
+
+def maxpool2d(image, pool_shape, dilation=1, stride=None):
     """
     Performs the max-pooling operation on the image
     :param image: The image to be maxpooled
@@ -93,7 +105,7 @@ def _backward_im_to_rows(top_grad, inp_shape, filter_shape, dilation, stride, di
 
 
 np.random.seed(12)
-Z = np.random.randint(1,10, (2,2,6,6)).astype(np.float32)
+Z = np.random.randint(1,10, (1,1,6,6)).astype(np.float32)
 ZP, Indx  = maxpool2d(Z, (2,2))
 top_grad = np.random.randn(*ZP.shape)
 ZUnp = backward_maxpool2d(top_grad, Indx, Z, (2,2))
@@ -101,3 +113,17 @@ print(Z.shape)
 print(ZP.shape)
 print(Indx.shape)
 print(ZUnp.shape)
+
+
+image = np.random.randint(1,10, (1,2,6,6)).astype(np.float32)
+im_shape = image.shapepool_shape = 2,2
+stride = pool_shape
+dilation=1
+dilated_shape = ((pool_shape[0] - 1) * dilation + 1, (pool_shape[1] - 1) * dilation + 1)
+res_shape = ((im_shape[2] - dilated_shape[0]) // stride[0] + 1, (im_shape[3] - dilated_shape[1]) // stride[1] + 1)
+imrow = _im_to_rows(image, (1, im_shape[1]) + pool_shape, dilation, stride, dilated_shape, res_shape)
+imrow = imrow.reshape((imrow.shape[0], imrow.shape[1], im_shape[1], -1))
+maxpooled = np.max(imrow, axis=3).transpose((0, 2, 1))
+maxpooled = maxpooled.reshape((maxpooled.shape[0], maxpooled.shape[1], res_shape[0], res_shape[1]))
+max_indices = np.argmax(imrow, axis=3)
+return maxpooled, max_indices

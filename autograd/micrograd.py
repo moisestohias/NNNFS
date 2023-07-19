@@ -1,4 +1,3 @@
-
 class Value:
     """ stores a single scalar value and its gradient """
 
@@ -69,26 +68,11 @@ class Value:
         for v in reversed(topo):
             v._backward()
 
-    def __neg__(self): # -self
-        return self * -1
-
-    def __radd__(self, other): # other + self
-        return self + other
-
-    def __sub__(self, other): # self - other
-        return self + (-other)
-
-    def __rsub__(self, other): # other - self
-        return other + (-self)
-
-    def __rmul__(self, other): # other * self
-        return self * other
-
-    def __truediv__(self, other): # self / other
-        return self * other**-1
-
-    def __rtruediv__(self, other): # other / self
-        return other * self**-1
-
-    def __repr__(self):
-        return f"Value(data={self.data}, grad={self.grad})"
+    def __neg__(self): return self * -1 # -self
+    def __radd__(self, other): return self + other # other + self
+    def __sub__(self, other): return self + (-other) # self - other
+    def __rsub__(self, other): return other + (-self) # other - self
+    def __rmul__(self, other): return self * other # other * self
+    def __truediv__(self, other): return self * other**-1 # self / other
+    def __rtruediv__(self, other): return other * self**-1 # other / self
+    def __repr__(self): return f"Value(data={self.data}, grad={self.grad})"
