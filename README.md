@@ -1,5 +1,5 @@
-# NeeDL 💞: 
-The **tiniest**/**fastest** 🔥 DL framework in **pure Numpy** 💨
+# NeeDL 🪡 (NEcessary Element of DL)
+The **tiniest & fastest** 🔥 DL framework in **pure Numpy** 💨
 
 >⚠️ Warning: In progress.
 
@@ -13,7 +13,7 @@ The **tiniest**/**fastest** 🔥 DL framework in **pure Numpy** 💨
 + ...
 
 # Design philosophy:
-+ Efficiency: **Efficiency is the star of the show**, *by my account this is the fastest 😱 Pure Numpy 💥 DL framework*, all layers are optimized for batching.
++ Efficiency: **Efficiency is the star of the show**, *by my account this is the fastest 🐇 Pure Numpy 💥 DL framework*, all layers are optimized for batching.
 + Simplicity & Succinctness: The code must remain clean, simple, succinct and  easy to read (if you know what's going on) as much as possible, no need for doc 😁
 + Modularity: Everything should be modular and independent, this goes for Layers, Activations functions, Losses, Optimizers...
 
