@@ -7,13 +7,18 @@ def tanh(x): return np.tanh(x) # or 2.0*(σ((2.0 * x)))-1.0
 def tanh_prime(x): return 1 - np.tanh(x) ** 2
 
 """
-https://josehoras.github.io/lstm-pure-python/
-https://github.com/josehoras?tab=repositories
-https://github.com/josehoras/LSTM-Frameworks
-https://bingyuzhou.github.io/deep-learning/2018/03/19/LSTM/
-https://pub.towardsai.net/building-a-lstm-from-scratch-in-python-1dedd89de8fe
-https://stackoverflow.com/questions/41555576/lstm-rnn-backpropagation
-https://github.com/BingyuZhou?language=&page=1&q=&sort=&tab=repositories
+josehoras.github.io/lstm-pure-python/
+github.com/josehoras/LSTM-Frameworks
+github.com/eliben/deep-learning-samples/tree/master/min-char-rnn
+https://skillsmatter.com/skillscasts/6611-visualizing-and-understanding-recurrent-networks
+bingyuzhou.github.io/deep-learning/2018/03/19/LSTM/
+pub.towardsai.net/building-a-lstm-from-scratch-in-python-1dedd89de8fe
+stackoverflow.com/questions/41555576/lstm-rnn-backpropagation
+github.com/BingyuZhou?language=&page=1&q=&sort=&tab=repositories
+
+RNN
+https://github.com/JY-Yoon/RNN-Implementation-using-NumPy
+https://karpathy.github.io/2015/05/21/rnn-effectiveness/
 
 The tanh component of the LSTM cell is denoted by g because it is the activation function that computes the candidate values for the cell state1. It is also applied to the final cell state to produce the hidden state2. The tanh function helps to keep the values between -1 and 1 and avoid exploding gradients2.
 
