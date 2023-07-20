@@ -8,6 +8,8 @@ The **tiniest & fastest** 🔥 DL framework in **pure Numpy** 💨
 - [ ] implement pytorch style model
 - [ ] Implement LSTM-backward
 - [ ] Implement RNN
+- [ ] Update losses/optimizers to follow our standard convention
+- [ ] deal with initializer
 
 + What is this? My attempt to write a **tiny & fast** comprehensive DL framework from scratch in **pure Numpy**.
 + Why? Golden Rule: You wont understand how something work till you make it by yourself.

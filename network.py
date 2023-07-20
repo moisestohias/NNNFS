@@ -82,3 +82,44 @@ def test(model, loss, x_test, y_test):
         error += loss.call(y, output)
     error /= len(x_test)
     return error
+
+
+class Network:
+    def __init__(self):5
+        self.layers = []
+        self.params = []
+        self.grads = []
+        self.optimizer_built = False
+
+    def add(self, layer): self.layers.append(layer)
+
+    def forward(self, A, truth):
+        for layer in self.layers[:-1]: A = layer(A)
+        return self.layers[-1].forward(A, truth) # last layer is assumed to be cretirian func
+
+    def predict(self, A):
+        for layer in self.layers[:-1]: A = layer(A)
+        return A
+
+    def backward(self):
+        top_grad = 1.0 # $\frac{\pratial loss/} {\pratial loss} = 1$
+        for layer in self.layers[::-1]: 
+            top_grad = layer.backward(top_grad)
+
+    def adam_trainstep(self, alpha=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, l2=0.):
+        if not self.optimizer_built:
+            self.params = itertools.chain(*[layer.params for layer in self.layers if hasattr(layer, "params")])
+            self.grads = itertools.chain(*[layer.grads for layer in self.layers if hasattr(layer, "grads")])
+            self.first_moments = [np.zeros_like(param) for param in self.params]
+            self.second_moments = [np.zeros_like(param) for param in self.params]
+            self.time_step = 1
+            self.optimizer_built = True
+        for param, grad, first_moment, second_moment in zip(self.params, self.grads, self.first_moments, self.second_moments):
+            first_moment *= beta_1
+            first_moment += (1 - beta_1) * grad
+            second_moment *= beta_2
+            second_moment += (1 - beta_2) * (grad ** 2)
+            m_hat = first_moment / (1 - beta_1 ** self.time_step)
+            v_hat = second_moment / (1 - beta_2 ** self.time_step)
+            param -= alpha * m_hat / (np.sqrt(v_hat) + epsilon) + l2 * param
+        self.time_step += 1

@@ -47,7 +47,61 @@ class Linear(Layer):
         self.zGrad, self.wGrad, self.bGrad = affTransP(TopGrad, self.z, self.w)
         return self.zGrad
 
+
+class Conv2d(Layer):
+    def __init__(self, inCh, outCh, KS, S=1, P=0, D=1, G=1, b=True, inShape=None):
+        if isinstance(KS, int): KS = (KS, KS)
+        if isinstance(S, int): self.S = (S, S)
+        if isinstance(P, int): self.P = (P, P)
+        if isinstance(D, int): self.D = (D, D)
+        if inShape: 
+            Hin, Win = inShape
+            Hout = floor(((Hin+2*self.P[0]-self.D[0]*(KS[0]-1)-1)/self.S[0]) +1) 
+            Wout = floor(((Win+2*self.P[1]-self.D[1]*(KS[1]-1)-1)/self.S[1]) +1) 
+            self.outShape = outCh, Hout, Wout # we don't need outCh delete that
+
+        self.layers_name = self.__class__.__name__
+        self.trainable = True
+        self.w = np.random.randn(outCh, inCh, *KS) # (outCh,inCh,H,W)
+        self.b = np.random.randn(outCh) if b else None # Each filter has bias, not each conv window
+        self.params = [self.w, self.b]
+        self.grads = [self.w, self.b]
+
+    def forward(self, x):
+        self.z = x
+        if self.b is not None: return corr2d(x, self.w) + self.b[np.newaxis, :, np.newaxis, np.newaxis]
+        else: return corr2d(x, self.w) 
+
+    def backward(self, TopGrad):
+        wGrad, zGrad = corr2d_backward(self.z, self.w, TopGrad)
+        if self.b is not None: self.grads = (wGrad, TopGrad.sum(axis=(0, 2, 3))) # wGrad, bGrad
+        else: self.grads = (wGrad,) # wGrad
+        return zGrad
+
+class Conv1d(Layer):
+    """ it still needs some work"""
+    def __init__(self, inCh, outCh, KS, S=1, P=0, D=1, G=1, b=True, inShape=None):
+        if inShape: self.outShape = outCh, floor(((inShape+2*self.P-self.D*(KS-1)-1)/self.S) +1) # we don't need outCh delete that
+        self.layers_name = self.__class__.__name__
+        self.trainable = True
+        self.w = np.random.randn(outCh, inCh, KS)
+        self.b = np.random.randn(outCh) if b else None # Each filter has bias, not each conv window
+        self.params = [self.w, self.b]
+        self.grads = [self.w, self.b]
+
+    def forward(self, x):
+        self.z = x
+        if self.b is not None: return corr1d(x, self.w) + self.b[np.newaxis, :, np.newaxis, np.newaxis]
+        else: return corr1d(x, self.w) 
+
+    def backward(self, TopGrad):
+        wGrad, zGrad = corr1d_backward(self.z, self.w, TopGrad)
+        if self.b is not None: self.grads = (wGrad, TopGrad.sum(axis=(0, 2, 3))) # wGrad, bGrad
+        else: self.grads = (wGrad,) # wGrad
+        return zGrad
+
 class BatchNorm(Layer):
+    """TODO: check both forward/backward(gradient) """
     def __init__(self, dim, num_features, eps=1e-05, momentum=0.1):
         self.layers_name = self.__class__.__name__
         self.trainable = True
@@ -76,35 +130,6 @@ class BatchNorm(Layer):
         self.beta_grad = np.sum(TopGrad, axis=0)   
         return zGrad, (self.gamma_grad, self.beta_grad)
 
-class Conv2d(Layer):
-    def __init__(self, inCh, outCh, KS, S=1, P=0, D=1, G=1, b=True, inShape=None):
-        if isinstance(KS, int): KS = (KS, KS)
-        if isinstance(S, int): self.S = (S, S)
-        if isinstance(P, int): self.P = (P, P)
-        if isinstance(D, int): self.D = (D, D)
-        if inShape: 
-            Hin, Win = inShape
-            Hout = floor(((Hin+2*self.P[0]-self.D[0]*(KS[0]-1)-1)/self.S[0]) +1) 
-            Wout = floor(((Win+2*self.P[1]-self.D[1]*(KS[1]-1)-1)/self.S[1]) +1) 
-            self.outShape = outCh, Hout, Wout
-
-        self.layers_name = self.__class__.__name__
-        self.trainable = True
-        self.w = np.random.randn(outCh, inCh, *KS) # (outCh,inCh,H,W)
-        self.b = np.random.randn(outCh) if b else None # Each filter has bias, not each conv window
-        self.params = [self.w, self.b]
-        self.grads = [self.w, self.b]
-
-    def forward(self, x):
-        self.z = x
-        if self.b is not None: return corr2d(x, self.w) + self.b[np.newaxis, :, np.newaxis, np.newaxis]
-        else: return corr2d(x, self.w) 
-
-    def backward(self, TopGrad):
-        wGrad, zGrad = corr2d_backward(self.z, self.w, TopGrad)
-        if self.b is not None: self.grads = (wGrad, TopGrad.sum(axis=(0, 2, 3))) # wGrad, bGrad
-        else: self.grads = (wGrad,) # wGrad
-        return zGrad
 
 class Reshape(Layer):
     def __init__(self, inShape, outShape):
@@ -157,25 +182,20 @@ class LSTM(Layer):
         self.inShape = inShape
         self.outShape = inShape
         self.layers_name = self.__class__.__name__
-        """
-        We need 2 weight martrices: 
-         + (W_{hh} maps previous hidden to new hidden)
-         + (W_{ih} maps input to hidden)
-        Pytorch stores the transposed version of both w
-        """
-        self.weight_hh = np.random.randn(hidden_size, 4*hidden_size) # torch: .T 
-        self.weight_ih = np.random.randn(input_size, 4*hidden_size) # torch: .T
+        self.weight_hh = np.random.randn(hidden_size, 4*hidden_size) # maps previous hidden to new hidden:  torch: .T 
+        self.weight_ih = np.random.randn(input_size, 4*hidden_size) # maps input to hidden:  torch: .T
         self.bias      = np.random.randn(hidden_size)
         self.cell_st   = np.random.randn(hidden_size)
         self.hidden_st = np.random.randn(hidden_size)
+        self.params    = (self.weight_hh, self.weight_ih, self.bias)
 
     def forward(self, input):
         self.input = input
-        H, c = lstm(input, self.weight_hh, self.weight_ih, self.bias, self.cell_st, self.hidden_st)
+        H, c, self.cach = lstm(input, self.weight_hh, self.weight_ih, self.bias, self.cell_st, self.hidden_st)
         return c
 
     def backward(self, TopGrad):
-        zGrad, self.wGrad = lstmP(TopGrad, self.input, c)
+        zGrad, self.wGrad = lstmP(TopGrad, self.input, self.cach)
         return zGrad
 
 class SoftmaxCELayer(Layer):
@@ -193,42 +213,3 @@ class SoftmaxCELayer(Layer):
         self.bottom_grad = backward_softmax_crossentropy(top_grad, self.cache, self.truth)
         return self.bottom_grad
 
-class Network:
-    def __init__(self):5
-        self.layers = []
-        self.params = []
-        self.grads = []
-        self.optimizer_built = False
-
-    def add(self, layer): self.layers.append(layer)
-
-    def forward(self, A, truth):
-        for layer in self.layers[:-1]: A = layer(A)
-        return self.layers[-1].forward(A, truth) # last layer is assumed to be cretirian func
-
-    def predict(self, A):
-        for layer in self.layers[:-1]: A = layer(A)
-        return A
-
-    def backward(self):
-        top_grad = 1.0 # $\frac{\pratial loss/} {\pratial loss} = 1$
-        for layer in self.layers[::-1]: 
-            top_grad = layer.backward(top_grad)
-
-    def adam_trainstep(self, alpha=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, l2=0.):
-        if not self.optimizer_built:
-            self.params = itertools.chain(*[layer.params for layer in self.layers if hasattr(layer, "params")])
-            self.grads = itertools.chain(*[layer.grads for layer in self.layers if hasattr(layer, "grads")])
-            self.first_moments = [np.zeros_like(param) for param in self.params]
-            self.second_moments = [np.zeros_like(param) for param in self.params]
-            self.time_step = 1
-            self.optimizer_built = True
-        for param, grad, first_moment, second_moment in zip(self.params, self.grads, self.first_moments, self.second_moments):
-            first_moment *= beta_1
-            first_moment += (1 - beta_1) * grad
-            second_moment *= beta_2
-            second_moment += (1 - beta_2) * (grad ** 2)
-            m_hat = first_moment / (1 - beta_1 ** self.time_step)
-            v_hat = second_moment / (1 - beta_2 ** self.time_step)
-            param -= alpha * m_hat / (np.sqrt(v_hat) + epsilon) + l2 * param
-        self.time_step += 1

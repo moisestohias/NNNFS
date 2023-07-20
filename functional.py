@@ -1,5 +1,5 @@
 # functional.py
-
+""" Should we keep all functional stuff here includding act/loss ...???"""
 import numpy as np
 from math import ceil, floor
 as_strided = np.lib.stride_tricks.as_strided
@@ -15,6 +15,7 @@ def _affTransP(TopGrad, Z, W):
     return Zgrad, WGrad, BGrad
 
 # Note: torch convention w(outF,inF), requiring forward: Z.dot(W.T)+B & backward: TopGrad.T.dot(Z) & TopGrad.dot(W).
+# Maybe I'll ditch torch convention for the linear layer, doesn't make any sense 😕
 def affTrans(Z, W, B=0): return Z.dot(W.T) + B # W: (outF,inF)
 def affTransP(TopGrad, Z, W):
     BGrad = TopGrad.sum(axis=0)
@@ -34,6 +35,7 @@ def _pad(Z: np.ndarray, K: np.ndarray, mode: str="valid") -> np.ndarray:
     if mode == 'valid' : padding = ((0,0),(0,0), (0,0), (0,0))
     elif mode == 'same':
         # OH = ZH-KH+1 -> ZH=OH+KH-1
+        # TODO: change this to take into acound stride/dilation
         PadTop, PadBottom = floor((KH-1)/2), ceil((KH-1)/2)
         PadLeft, PadRigh = floor((KW-1)/2), ceil((KW-1)/2)
         padding = ((0,0),(0,0), (PadTop, PadBottom),(PadLeft, PadRigh))
@@ -44,7 +46,7 @@ def _pad(Z: np.ndarray, K: np.ndarray, mode: str="valid") -> np.ndarray:
     if np.array(padding).any(): Z = np.pad(Z, padding)
     return Z, K
 
-def calculateMaxpool2dOutShape(*a, **kw): return calculateConvOutShape(*a, **kw)
+def calculateMaxpool2dOutShape(*a, **kw): return calculateConvOutShape(*a, **kw) # Correct: Check torch doc
 def calculateConvOutShape(inShape, KS, S=(1,1), P=(0,0), D=(1,1)):
     Hin, Win = inShape
     Hout = floor(((Hin+2*P[0]-D[0]*(KS[0]-1)-1)/S[0]) +1)
@@ -79,21 +81,27 @@ def _corr2d_Old(Z, W):
     out = A @ W.reshape(-1, C_out)
     return out.reshape(N,ZH-KH+1,ZW-KW+1,C_out).transpose(0,3,1,2) # NHWC -> NCHW
 
-def conv2d(Z, W, mode:str="valid"): return _corr2d(*_pad(Z, np.flip(W), mode))
-def corr2d(Z, W, mode:str="valid"): return _corr2d(*_pad(Z, W, mode))
-def corr2d_backward(Z, W, TopGrad,  mode:str="valid"):
-    WGrad = corr2d(Z.transpose(1,0,2,3), TopGrad.transpose(1,0,2,3)).transpose(1,0,2,3)
-    ZGrad = np.flip(np.rot90(corr2d(TopGrad, W.transpose(1,0,2,3), "full"))).transpose(1,0,2,3)
-    return WGrad , ZGrad
-
 def _corr2d(Z, W, S=(1,1), P=(0,0), D=(1,1)):
-    """ Convolution with stride and padding support
+    """ 
+    Convolution with stride and padding support
     Z: (N,C_in,H,W)
     W: (C_out,C_in,KH,KW)
     S: (SH,SW) stride
     P: (PH,PW) padding
     D: (DH,DW) dilation
     The reason we permute the dimensions is to make HWC of Z align with KKI of W as the last dim.
+
+    >Note: This is the fastest conv in pure Numpy
+    W = O*I*K*K -> K*K*I*O -> W.reshape(KH*KW*I, O) [----] # Each channel kernels represented by a single row
+    Z = N*C*H*W -> N*H*W*C -> N*Z*ZH*ZW*KH*KW*C -> ZS.reshape(-1,KH*KW*inC)  # correpsonding small matrices & channels as vectors
+
+    K = 10*4*3*3 -> innerDim:10*4*3*3=10,1,36 [----] # Each channel kernels represented by a single row
+    Z = 10*4*8*8 -> 1*4*6*6*3*3 ->? 1         [-]  # The correpsonding small matrices & channels should be a vector
+                                              [-]
+                                              [-]
+                                              [-]
+    That's why the channels should be last after HxW
+
     """
     Z = Z.transpose(0,2,3,1) # NCHW -> NHWC
     W = W.transpose(2,3,1,0) # OIKK -> KKIO
@@ -106,6 +114,13 @@ def _corr2d(Z, W, S=(1,1), P=(0,0), D=(1,1)):
     A = as_strided(Z, shape = outShape, strides = (Ns, ZHs*S[0], ZWs*S[0], ZHs*D[0], ZWs*D[1], Cs)).reshape(-1,inner_dim)
     out = A @ W.reshape(-1, C_out)
     return out.reshape(N,outH,outW,C_out).transpose(0,3,1,2) # NHWC -> NCHW
+
+def conv2d(Z, W, mode:str="valid"): return _corr2d(*_pad(Z, np.flip(W), mode))
+def corr2d(Z, W, mode:str="valid"): return _corr2d(*_pad(Z, W, mode))
+def corr2d_backward(Z, W, TopGrad,  mode:str="valid"):
+    WGrad = corr2d(Z.transpose(1,0,2,3), TopGrad.transpose(1,0,2,3)).transpose(1,0,2,3)
+    ZGrad = np.flip(np.rot90(corr2d(TopGrad, W.transpose(1,0,2,3), "full"))).transpose(1,0,2,3)
+    return WGrad , ZGrad
 
 # Pooling
 def pool1d(Z, K:int=2, Pad=False):
@@ -152,6 +167,7 @@ def maxpool2d(Z, K:tuple=(2,2)):
     return MxP, Inx
 
 def unmaxpool2d(ZP, Indx, K: tuple = (2, 2)):
+    # abhorent change this, to im2col
     ZN, ZC, ZH, ZW = ZP.shape
     KH, KW = K
     Z = np.zeros((ZN, ZC, ZH * KH, ZW * KW))
@@ -169,6 +185,7 @@ def unmaxpool2d(ZP, Indx, K: tuple = (2, 2)):
 
 def maxpool2d_backward(d_pool, padded, pool_size=(2,2)): return unpool2d(d_pool, padded, pool_size)
 
+# Using ascontiguousarray to return new array avoid refrencing the old
 def unpool1d(Z, K):
     N,C,W= Z.shape
     return np.ascontiguousarray(as_strided(Z, (*Z.shape,K), (*Z.strides,0)).reshape(N, C, W*K))
