@@ -6,10 +6,11 @@ The **tiniest & fastest** 🔥 DL framework in **pure Numpy** 💨
 - [ ] change maxpool2d: maxpool2dP can be achieved with single loop with im2col, check ManyFacedGodMaxPooling.py
 - [ ] implement optimizers class
 - [ ] implement pytorch style model
-- [ ] Implement LSTM-backward
+- [x] Implement LSTM-backward
 - [ ] Implement RNN
 - [ ] Update losses/optimizers to follow our standard convention
 - [ ] deal with initializer
+- [ ] make sure you are Clipping correctly in activations
 
 + What is this? My attempt to write a **tiny & fast** comprehensive DL framework from scratch in **pure Numpy**.
 + Why? Golden Rule: You wont understand how something work till you make it by yourself.

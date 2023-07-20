@@ -40,6 +40,8 @@ class Activation(Layer):
 # GELU: Gaussian Error Linear Unit used in most Transformers(GPT-3, BERT): paperswithcode.com/method/gelu
 # Hard-Swish: paperswithcode.com/method/hard-swish
 
+## TODO: make sure you are Clipping correctly
+
 def sigmoid(x): return np.reciprocal((1.0+np.exp(-np.clip(x, -100, 2e12))))
 def sigmoidP(x):
   s = 1.0/( (1.0+np.exp(-np.clip(x, -100, 2e12))) )
@@ -48,10 +50,10 @@ def relu(x): return np.where(x>= 0, x, 0)
 def reluP(x): return np.where(x>= 0, 1, 0)
 def leaky_relu(x, alpha=0.01): return np.where(x>= 0, x, alpha*x)
 def leaky_reluP(x, alpha=0.01): return np.where(x>= 0, 1, alpha)
-def elu(x, alpha=0.01): return np.where(x>= 0, x, alpha*(np.exp(x)-1))
-def eluP(x, alpha=0.01): return np.where(x>= 0, 1, alpha*np.exp(x))
-def swish(x): return x * np.reciprocal((1.0+np.exp(-x))) # x*σ(x) σ(x)+σ'(x)x : σ(x)+σ(x)*(1-σ(x))*x
-def swishP(x): s = np.reciprocal((1.0+np.exp(-x))); return s+s*(1-s)*x #σ(x)+σ(x)*(1-σ(x))*x
+def elu(x, alpha=0.01): return np.where(x>= 0, x, alpha*(np.exp(np.clip(x, -1e15, 1e15))-1))
+def eluP(x, alpha=0.01): return np.where(x>= 0, 1, alpha*np.exp(np.clip(x, -1e15, 1e15)))
+def swish(x): return x * np.reciprocal((1.0+np.exp(-np.clip(x, -1e15, 1e15)))) # x*σ(x) σ(x)+σ'(x)x : σ(x)+σ(x)*(1-σ(x))*x
+def swishP(x): s = np.reciprocal((1.0+np.exp(-np.clip(x, -1e15, 1e15)))); return s+s*(1-s)*x #σ(x)+σ(x)*(1-σ(x))*x
 silu, siluP = swish, swishP # The SiLU function is also known as the swish function.
 def tanh(x): return np.tanh(x) # or 2.0*(σ((2.0 * x)))-1.0
 def tanhP(x): return 1 - np.tanh(x) ** 2

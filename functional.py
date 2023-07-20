@@ -215,7 +215,7 @@ def _lstm(X, h, c, W_hh, W_ih, b):
     return H, c
 def lstm_cell(x, prev_h, prev_c, Wx, Wh, b): # swapping o/g
     a = Z@W_ih + H@W_hh + b # (1, 4*hidden_dim) if b.shape dont match use this b[None,:]
-    i,f,g,o = np.split(, 4, axis=1) # Input, Forget,g (tanh-Activation) , Output
+    i,f,g,o = np.split(a, 4, axis=1) # Input, Forget,g (tanh-Activation) , Output
     i,f,g,o = sigmoid(i), sigmoid(f), np.tanh(g), sigmoid(o)
     next_c = f * prev_c + i * g             # (1, hidden_dim)
     next_h = o * (np.tanh(next_c))          # (1, hidden_dim)
@@ -278,18 +278,6 @@ def lstm_backward(dh, cache):
 
 
 def normalize(Z): return (Z-np.mean(Z))/np.std(Z) # standardize really
-
-# Losses
-def cross_entropy(y, p): p = np.clip(p, 1e-15, 1 - 1e-15); return - y * np.log(p) - (1 - y) * np.log(1 - p)
-def cross_entropy_prim(y, p): p = np.clip(p, 1e-15, 1 - 1e-15); return  - (y / p) + (1 - y) / (1 - p)
-def binary_cross_entropy(y, p): return np.mean(-y * np.log(p) - (1 - y) * np.log(1 - p))
-def binary_cross_entropy_prime(y, p): return ((1 - y) / (1 - p) - y / p) / np.size(y)
-
-def mse(y, p): return 0.5*np.power((y-p), 2).mean()
-def mse_prime(y, p): return 2*(p-y)/np.prod(y.shape)
-# Note: torch standard is:
-# def mse(p, y): return 0.5*np.power((p-y), 2).mean()
-# def mse_prime(p, y): return (y-p).mean()
 
 
 

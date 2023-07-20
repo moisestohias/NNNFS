@@ -4,6 +4,7 @@ from math import ceil, floor
 as_strided = np.lib.stride_tricks.as_strided
 
 
+# quantdare.com/implementing-a-rnn-with-numpy/
 
 def rnn(Z, H, W_hh, W_ih, Bh, By, actFun=tanh):
     """
