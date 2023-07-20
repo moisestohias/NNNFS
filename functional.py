@@ -200,20 +200,82 @@ def maxpool1d(Z, K:int=2): return pool1d(Z, K).max(axis=-1)
 def avgpool2d(Z, K:tuple=(2,2)): return pool2d(Z, K).mean(axis=(-2,-1)) # for average pool, this might work
 
 
-def lstm_cell(Z, H, C, W_hh, W_ih, B):
+def _lstm_cell(Z, H, C, W_hh, W_ih, B):
     i,f,g,o = np.split(Z@W_ih + H@W_hh + B[None,:], 4, axis=1) # Input, Forget,g (tanh-Activation) , Output
     i,f,g,o = sigmoid(i), sigmoid(f), np.tanh(g), sigmoid(o)
     c_out = f*c + i*g
     h_out = o * np.tanh(c_out)
     cache = i,f,o,g, c_out, C,x , h_out, Wx, Wh
     return h_out, c_out
-
-def lstm(X, h, c, W_hh, W_ih, b):
+def _lstm(X, h, c, W_hh, W_ih, b):
     H = np.zeros((X.shape[0], X.shape[1], h.shape[1]))
     for t in range(X.shape[0]):
         h, c = lstm_cell(X[t], h, c, W_hh, W_ih, b)
         H[t,:,:] = h # Batch Comes second for contiguous memory :,:
     return H, c
+def lstm_cell(x, prev_h, prev_c, Wx, Wh, b): # swapping o/g
+    a = Z@W_ih + H@W_hh + b # (1, 4*hidden_dim) if b.shape dont match use this b[None,:]
+    i,f,g,o = np.split(, 4, axis=1) # Input, Forget,g (tanh-Activation) , Output
+    i,f,g,o = sigmoid(i), sigmoid(f), np.tanh(g), sigmoid(o)
+    next_c = f * prev_c + i * g             # (1, hidden_dim)
+    next_h = o * (np.tanh(next_c))          # (1, hidden_dim)
+    cache = x, prev_h, prev_c, Wx, Wh, b, a, i, f, o, g, next_c
+    return next_h, next_c, cache
+
+def lstm(x, prev_h, prev_c, Wx, Wh, b):
+    cache = []
+    for i in range(x.shape[0]):     # 0 to seq_length-1
+        next_h, next_c, next_cache = lstm_step_forward(x[i][None], prev_h, prev_c, Wx, Wh, b)
+        prev_h = next_h
+        prev_c = next_c
+        cache.append(next_cache)
+        if i > 0: h = np.append(h, next_h, axis=0)
+        else: h = next_h
+    return h, cache
+
+def lstm_step_backward(dnext_h, dnext_c, cache):
+    x, prev_h, prev_c, Wx, Wh, b, a, i, f, o, g, next_c = cache
+    d1 = o * (1 - np.tanh(next_c) ** 2) * dnext_h + dnext_c
+    dprev_c = f * d1
+    dop = np.tanh(next_c) * dnext_h
+    dfp = prev_c * d1
+    dip = g * d1
+    dgp = i * d1
+    do = o * (1 - o) * dop
+    df = f * (1 - f) * dfp
+    di = i * (1 - i) * dip
+    dg = (1 - g ** 2) * dgp
+    da = np.concatenate((di, df, dg, do), axis=1)
+    db = np.sum(da, axis=0)
+    dx = da.dot(Wx.T)
+    dprev_h = da.dot(Wh.T)
+    dWx = x.T.dot(da)
+    dWh = prev_h.T.dot(da)
+    return dx, dprev_h, dprev_c, dWx, dWh, db
+
+def lstm_backward(dh, cache):
+    dx, dh0, dWx, dWh, db = None, None, None, None, None
+    N, H = dh.shape
+    dh_prev = 0
+    dc_prev = 0
+    for i in reversed(range(N)):
+        dx_step, dh0_step, dc_step, dWx_step, dWh_step, db_step = lstm_step_backward(dh[i][None] + dh_prev, dc_prev, cache[i])
+        dh_prev = dh0_step
+        dc_prev = dc_step
+        if i==N-1:
+            dx = dx_step
+            dWx = dWx_step
+            dWh = dWh_step
+            db = db_step
+        else:
+            dx = np.append(dx_step, dx, axis=0)
+            dWx += dWx_step
+            dWh += dWh_step
+            db += db_step
+    dh0 = dh0_step
+    return dx, dh0, dWx, dWh, db
+
+
 
 def normalize(Z): return (Z-np.mean(Z))/np.std(Z) # standardize really
 

@@ -1,12 +1,12 @@
 
 """
-https://blog.varunajayasiri.com/numpy_lstm.html
-https://quantdare.com/implementing-a-rnn-with-numpy/
-https://mattgorb.github.io/lstm_numpy
-https://github.com/nicodjimenez/lstm/blob/master/test.py
-https://github.com/CaptainE/RNN-LSTM-in-numpy
-https://towardsdatascience.com/implementing-recurrent-neural-network-using-numpy-c359a0a68a67
-https://cs231n.github.io/neural-networks-case-study/#grad
+blog.varunajayasiri.com/numpy_lstm.html
+quantdare.com/implementing-a-rnn-with-numpy/
+mattgorb.github.io/lstm_numpy
+github.com/nicodjimenez/lstm/blob/master/test.py
+github.com/CaptainE/RNN-LSTM-in-numpy
+towardsdatascience.com/implementing-recurrent-neural-network-using-numpy-c359a0a68a67
+cs231n.github.io/neural-networks-case-study/#grad
 """
 import numpy as np
 
