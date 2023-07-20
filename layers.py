@@ -23,7 +23,6 @@ zGrad   = conv2d(output_gradient, self.weights.transpose(1,0,2,3), "full")
 
 class Layer:
     """ All layers should Only acccept batch of inputs: NCHW"""
-    def __init__(self): self.trainable = True
     def __call__(self, x): return self.forward(x)
     def __repr__(self): return f"{self.layers_name}(Z)"
     def forward(self, input): raise NotImplementedError

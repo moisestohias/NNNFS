@@ -135,7 +135,7 @@ def pool1d(Z, K:int=2, Pad=False):
         Ns, Cs, Ws = Z.strides
     return as_strided(Z, shape=(N,C, W//K, K), strides=(Ns, Cs, Ws*K , Ws) )
 
-def pool2d(Z, K:tuple=(2,2), MustPad=False):
+def pool2d(Z, K:tuple=(2,2), S=(1,1), P=(0,0), D=(1,1), MustPad=False):
     """ 
     + TODO: We must suport stride (dilation!!)
     Performs the windowing, and padding if needed
@@ -143,7 +143,7 @@ def pool2d(Z, K:tuple=(2,2), MustPad=False):
     if there are pixels left just drop them. We may need to reconsider.
     """
     KH, KW = K  # Kernel Height & Width
-    N, C, ZH, ZW = Z.shape # Input: NCHW Batch, Channels, Height, Width
+    N, C, ZH, ZW = Z.shape
     Ns, Cs, Hs, Ws = Z.strides
     EdgeH, EdgeW = ZH%KH, ZW%KW # How many pixels left on the edge
     if MustPad and (EdgeH!=0 or EdgeW!=0): # If there are pixelx left and Pad=True, we pad
@@ -223,6 +223,7 @@ def lstm_cell(x, prev_h, prev_c, Wx, Wh, b): # swapping o/g
     return next_h, next_c, cache
 
 def lstm(x, prev_h, prev_c, Wx, Wh, b):
+    # TODO: change naming convention of prev_h, next_h to remove hidious: prev_h = next_h
     cache = []
     for i in range(x.shape[0]):     # 0 to seq_length-1
         next_h, next_c, next_cache = lstm_step_forward(x[i][None], prev_h, prev_c, Wx, Wh, b)
@@ -281,29 +282,6 @@ def normalize(Z): return (Z-np.mean(Z))/np.std(Z) # standardize really
 
 
 
-"""
-# Test Conv
-np.random.seed(42)
-Z = np.random.randn(1,1,8,8).astype(np.float32)
-W = np.random.randn(1,1,3,3).astype(np.float32)
-TZ, TW = torch.as_tensor(Z), torch.as_tensor(W)
-TZ.requires_grad_(), TW.requires_grad_()
-
-# Forkward
-Tout = F.conv2d(TZ, TW)
-out = corr2d(Z, W)
-print(out.shape==Tout.shape, mag(out-Tout.detach().numpy()).round(4))
-
-# Backward
-TopGrad = np.ones_like(out)
-Tout.backward(torch.as_tensor(TopGrad))
-WGrad, ZGrad = corr2d_backward(Z, W, TopGrad)
-print(TZ.grad.shape == ZGrad.shape, mag(TZ.grad.numpy() - ZGrad).round(4))
-
-"""
-
-
-def crossentropy(x, y): return np.mean(-np.log(x[np.arange(x.shape[0]), y]))
 def softmax(x):
     temp = np.exp(x - x.max(axis=1, keepdims=True))
     res = temp / temp.sum(axis=1, keepdims=True)
@@ -317,19 +295,7 @@ def backward_softmax(top_grad, inp_softmax):
     res = np.matmul((sub - mul), top_grad[:, :, np.newaxis]).squeeze()
     return res
 
-def backward_crossentropy(top_grad, x, y):
-    res = np.zeros(x.shape, dtype=x.dtype)
-    res[np.arange(x.shape[0]), y] = - np.reciprocal(x[np.arange(x.shape[0]), y]) / x.shape[0]
-    return res * top_grad
 
-def softmax_crossentropy(x, y):
-    s = softmax(x)
-    return crossentropy(s, y), s
-
-def backward_softmax_crossentropy(top_grad, inp_softmax, y):
-    res = inp_softmax
-    res[np.arange(res.shape[0]), y] -= 1
-    return top_grad * res / inp_softmax.shape[0]
 
 
 

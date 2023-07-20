@@ -8,8 +8,7 @@ The **tiniest & fastest** 🔥 DL framework in **pure Numpy** 💨
 - [ ] implement pytorch style model
 - [x] Implement LSTM-backward
 - [ ] Implement RNN
-- [ ] Update losses/optimizers to follow our standard convention
-- [ ] deal with initializer
+- [ ] Update losses/optimizers to follow our standard convention [ ] deal with initializer
 - [ ] make sure you are Clipping correctly in activations
 
 + What is this? My attempt to write a **tiny & fast** comprehensive DL framework from scratch in **pure Numpy**.
@@ -107,32 +106,6 @@ Linear, Conv2d, (Conv1D to be added), BatchNorm, Dropout, Attention, Reshape, Fl
 
 ## Helper function:
 As it's always the case you're going to need helper functions, since there will be many utils helper function, they should be organized into data manipulation utils, and misc utils.
-
-
-```python
-from MoisesNNFS.layers import Linear, Reshape
-from MoisesNNFS.activatios import Tanh
-from MoisesNNFS.losses import MSE
-from MoisesNNFS.opimizers import SGD
-from MoisesNNFS import Network
-from MoisesNNFS.utils import MNIST, Batcher
-
-optim = SGD(LR=0.001, epochs=20, MBS=32)
-criterian = MSE()
-model = Network(optim, )
-model.add(Linear(784, 100))
-model.add(Tanh())
-model.add(Linear(100, 10))
-model.add(Sigmoid())
-
-_mnist = MNIST(OneHot=True)
-for i in range(epochs):
-    mnist = Batcher(_mnist, MBS)
-    for x, y in mnist:
-        pred = model(x)
-        ...
-
-```
 
 
 # Guidlines: 
