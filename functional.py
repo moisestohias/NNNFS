@@ -200,6 +200,12 @@ def maxpool1d(Z, K:int=2): return pool1d(Z, K).max(axis=-1)
 def avgpool2d(Z, K:tuple=(2,2)): return pool2d(Z, K).mean(axis=(-2,-1)) # for average pool, this might work
 
 
+def insert_zeros(a, row, col):
+    """ Insert zersos between elements which is used for the transposed conv"""
+    for i in range(1, row+1): a = np.insert(a, np.arange(i, a.shape[-1], i), 0, axis=-1)
+    for i in range(1, col+1): a = np.insert(a, np.arange(i, a.shape[-2], i), 0, axis=-2)
+    return a
+
 def _lstm_cell(Z, H, C, W_hh, W_ih, B):
     i,f,g,o = np.split(Z@W_ih + H@W_hh + B[None,:], 4, axis=1) # Input, Forget,g (tanh-Activation) , Output
     i,f,g,o = sigmoid(i), sigmoid(f), np.tanh(g), sigmoid(o)
@@ -276,11 +282,7 @@ def lstm_backward(dh, cache):
     dh0 = dh0_step
     return dx, dh0, dWx, dWh, db
 
-
-
 def normalize(Z): return (Z-np.mean(Z))/np.std(Z) # standardize really
-
-
 
 def softmax(x):
     temp = np.exp(x - x.max(axis=1, keepdims=True))
@@ -297,8 +299,6 @@ def backward_softmax(top_grad, inp_softmax):
 
 
 
-
-
 # Didn't test, Make sure this is correct: Kapathry Lect 3 youtu.be/P6sfmUTpUmc & 4 youtu.be/q8SA3rM6ckI
 def batchNormBackward(TopGrad, batchMean, batchVar, gama, beta):
     N = TopGrad.shape[0]
@@ -310,3 +310,28 @@ def batchNormBackward(TopGrad, batchMean, batchVar, gama, beta):
     BNgainGrad = np.sum(TopGrad * (TopGrad - batchMean) / np.sqrt(batchVar), axis=0)
     BNbiasGrad = np.sum(TopGrad, axis=0)
     return Zgrad, BNgainGrad, BNbiasGrad
+
+
+# Transformer:
+def softmax(Z):
+    Z = np.exp(Z - Z.max(axis=-1, keepdims=True))
+    return Z / Z.sum(axis=-1, keepdims=True)
+    
+def self_attention(X, mask, W_KQV, W_out):
+    K,Q,V = np.split(X@W_KQV, 3, axis=-1)
+    attn = softmax(K@Q.swapaxes(-1,-2) / np.sqrt(X.shape[-1]) + mask)
+    return attn@V@W_out, attn
+
+def layer_norm(Z, eps): return (Z - Z.mean(axis=-1, keepdims=True)) / np.sqrt(Z.var(axis=-1, keepdims=True) + eps)
+
+def multihead_attention(X, mask, heads, W_KQV, W_out):
+    N,T,d = X.shape
+    K,Q,V = np.split(X@W_KQV, 3, axis=-1)
+    K,Q,V = [a.reshape(N,T,heads,d//heads).swapaxes(1,2) for a in (K,Q,V)]
+    
+    attn = softmax(K@Q.swapaxes(-1,-2) / np.sqrt(d//heads) + mask)
+    return (attn@V).swapaxes(1,2).reshape(N,T,d) @ W_out, attn
+
+def transformer(X, mask, heads, W_KQV, W_out, W_ff1, W_ff2, eps):
+    Z = layer_norm(multihead_attention(X, mask, heads, W_KQV, W_out)[0] + X, eps)
+    return layer_norm(Z + relu(Z@W_ff1)@W_ff2, eps)

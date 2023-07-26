@@ -33,7 +33,7 @@ class Linear(Layer):
         self.layers_name = self.__class__.__name__
         self.trainable = True
         lim = 1 / np.sqrt(inF) # Only inF used to calculate the limit, avoid saturation..
-        self.w  = np.random.uniform(-lim, lim, (outF, inF)) # torch style
+        self.w  = np.random.uniform(-lim, lim, (outF, inF)) # torch style (outF, inF)
         self.b = np.random.randn(outF) * 0.1 if bias else None
         self.params = (self.w, self.b)
         self.inShape, self.outShape = (inF,), (outF,)

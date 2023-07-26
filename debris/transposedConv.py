@@ -27,6 +27,11 @@ def _transp_conv2d(Z, W, S=(1,1), P=(0,0), OP=(0,0), D=(1,1)):
 def transp_conv2d(Z,W,S=(1,1),P=(0,0),OP=(0,0),D=(1,1)):
   return _transp_conv2d(Z,W,S,P,D)
 
+def insert_zeros(a, row, col):
+    for i in range(1, row+1): a = np.insert(a, np.arange(1, a.shape[1], i), 0, axis=0)
+    for i in range(1, col+1): a = np.insert(a, np.arange(1, a.shape[1], i), 0, axis=1)
+    return a
+
 def transp_conv2d(Z, W, S=(1,1), P=(0,0), OP=(0,0), D=(1,1)):
     """ Transposed Convolution with stride and padding support
     Z: (N,C_in,H,W)
