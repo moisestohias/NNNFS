@@ -83,7 +83,7 @@ def _corr2d_Old(Z, W):
 
 def _corr2d(Z, W, S=(1,1), P=(0,0), D=(1,1)):
     """ 
-    Convolution with stride and padding support
+    Convolution with stride, padding and dilation support
     Z: (N,C_in,H,W)
     W: (C_out,C_in,KH,KW)
     S: (SH,SW) stride
@@ -318,6 +318,10 @@ def softmax(Z):
     return Z / Z.sum(axis=-1, keepdims=True)
     
 def self_attention(X, mask, W_KQV, W_out):
+    """Change K,Q,V order
+    Q,K,V = np.split(X@W_QKV, 3, axis=-1)
+    attn = softmax(Q@K.swapaxes(-1,-2) / np.sqrt(X.shape[-1]) + mask)
+    """
     K,Q,V = np.split(X@W_KQV, 3, axis=-1)
     attn = softmax(K@Q.swapaxes(-1,-2) / np.sqrt(X.shape[-1]) + mask)
     return attn@V@W_out, attn
