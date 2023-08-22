@@ -40,6 +40,11 @@ class Dataset:
   def __getitem__(self,n): return list(zip(self.xs[n], self.ys[n]))
   def __repr__(self): return f"{self.__class__.__name__}(xs, ys)"
 
+  @classmethod
+  def ImageFolder(cls, path):
+    import os
+
+
 class Batcher:
   """ Batcher is a DS wrapper to iterate over MBS. 
   Batcher should Shuffle since the DS load data once and batch for many epochs
@@ -80,6 +85,7 @@ def splitDS(Size:int, Ratio:float = 0.8, Shuffle=True):
 
 # Mnist
 def loadMnist(MNISTpath=None, Flat=True, Standardize=False, OneHot=False): # Mnist is already Flat and Normalized(0-1)
+  """ This function should remain as it is, simple and self contained for quick testing (don't use Transform) """
   import requests, gzip, pickle, os
   if MNISTpath is None: MNISTpath = "/media/moises/D/DLDS" if os.name == "posix" else "D/DLDS" # Nix or Win
   url = 'https://github.com/mnielsen/neural-networks-and-deep-learning/raw/master/data/mnist.pkl.gz'
@@ -88,8 +94,8 @@ def loadMnist(MNISTpath=None, Flat=True, Standardize=False, OneHot=False): # Mni
       mnistPKLGZ = requests.get(url).content
       f.write(mnistPKLGZ)
   with gzip.open(os.path.join(MNISTpath, "mnist.pkl.gz"), "rb") as mn: 
-    (xtr, ytr), (xva, yva), (xte, yte) = pickle.load(mn, encoding="latin-1") # tr, va, te
     # ((50000, 784) (50000,)) ((10000, 784) (10000,)) ((10000, 784) (10000,))
+    (xtr, ytr), (xva, yva), (xte, yte) = pickle.load(mn, encoding="latin-1") # tr, va, te
   if Standardize:
     xtr = xtr-xtr.mean(axis=1)[:,None] # Standardizing per-sample (!wrong:change this)
     xva = xva-xval.mean(axis=1)[:,None]
@@ -98,9 +104,16 @@ def loadMnist(MNISTpath=None, Flat=True, Standardize=False, OneHot=False): # Mni
   if Flat: return (xtr, ytr), (xva, yva), (xte, yte) # tr, va, te 
   return (xtr.reshape(-1,1, 28, 28), ytr), (xva.reshape(-1,1, 28, 28), yva), (xte.reshape(-1,1, 28, 28), yte)
 
+def insert_zeros(a, row, col):
+    """ Insert zersos between elements which is used for the transposed conv"""
+    for i in range(1, row+1): a = np.insert(a, np.arange(i, a.shape[-1], i), 0, axis=-1)
+    for i in range(1, col+1): a = np.insert(a, np.arange(i, a.shape[-2], i), 0, axis=-2)
+    return a
 
 # Some Test:
 if __name__ == '__main__':
   for x, y in Batcher(MNIST(OneHot=True), 32):
     print(x.shape, y.shape)
     break
+
+

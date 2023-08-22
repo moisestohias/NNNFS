@@ -284,21 +284,6 @@ def lstm_backward(dh, cache):
 
 def normalize(Z): return (Z-np.mean(Z))/np.std(Z) # standardize really
 
-def softmax(x):
-    temp = np.exp(x - x.max(axis=1, keepdims=True))
-    res = temp / temp.sum(axis=1, keepdims=True)
-    return res
-
-def backward_softmax(top_grad, inp_softmax):
-    left = inp_softmax[:, :, np.newaxis]
-    right = inp_softmax[:, np.newaxis, :]
-    sub = left * np.eye(inp_softmax.shape[1])
-    mul = np.matmul(left, right)
-    res = np.matmul((sub - mul), top_grad[:, :, np.newaxis]).squeeze()
-    return res
-
-
-
 # Didn't test, Make sure this is correct: Kapathry Lect 3 youtu.be/P6sfmUTpUmc & 4 youtu.be/q8SA3rM6ckI
 def batchNormBackward(TopGrad, batchMean, batchVar, gama, beta):
     N = TopGrad.shape[0]
@@ -310,6 +295,19 @@ def batchNormBackward(TopGrad, batchMean, batchVar, gama, beta):
     BNgainGrad = np.sum(TopGrad * (TopGrad - batchMean) / np.sqrt(batchVar), axis=0)
     BNbiasGrad = np.sum(TopGrad, axis=0)
     return Zgrad, BNgainGrad, BNbiasGrad
+
+
+def softmax(x):    
+    temp = np.exp(x - x.max(axis=1, keepdims=True))
+    return temp / temp.sum(axis=1, keepdims=True)
+
+def backward_softmax(top_grad, inp_softmax):
+    left = inp_softmax[:, :, np.newaxis]
+    right = inp_softmax[:, np.newaxis, :]
+    sub = left * np.eye(inp_softmax.shape[1])
+    mul = np.matmul(left, right)
+    res = np.matmul((sub - mul), top_grad[:, :, np.newaxis]).squeeze()
+    return res
 
 
 # Transformer:
