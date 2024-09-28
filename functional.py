@@ -7,6 +7,7 @@ as_strided = np.lib.stride_tricks.as_strided
 # LeakyReluAlpha = 0.02
 # gain = dict(Tanh=5/3, ReLU=np.sqrt(2), LeakyReLU=1/np.sqrt(1+LeakyReluAlpha**2), SELU=3/4)
 
+# Note: If you ever get lost, re-watch [the fourth video Backpropagation by 3B1B](https://youtu.be/tIeHLnjs5U8)
 def _affTrans(Z, W, B=0): return Z.dot(W) + B # W(inF,outF)
 def _affTransP(TopGrad, Z, W):
     BGrad = TopGrad.sum(axis=0)
@@ -43,10 +44,7 @@ def _pad(Z: np.ndarray, K: np.ndarray, mode: str="valid") -> np.ndarray:
         PadTop, PadBottom = KH-1, KH-1 # full-convolution aligns kernel edge with the firs pixel of input, thus K-1
         PadLeft, PadRigh = KW-1, KW-1
         padding = ((0,0),(0,0), (PadTop, PadBottom),(PadLeft, PadRigh))
-    if np.array(padding).any(): Z = np.pad(Z, padding)
-    return Z, K
-
-def calculateMaxpool2dOutShape(*a, **kw): return calculateConvOutShape(*a, **kw) # Correct: Check torch doc
+    if np.array(padding).any(): Z = np.pad(Z, padding) return Z, K def calculateMaxpool2dOutShape(*a, **kw): return calculateConvOutShape(*a, **kw) # Correct: Check torch doc
 def calculateConvOutShape(inShape, KS, S=(1,1), P=(0,0), D=(1,1)):
     Hin, Win = inShape
     Hout = floor(((Hin+2*P[0]-D[0]*(KS[0]-1)-1)/S[0]) +1)

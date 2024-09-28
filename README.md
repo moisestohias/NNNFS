@@ -1,7 +1,10 @@
 # NeeDL 🪡 (NEcessary Elements of DL)
 The **tiniest & fastest** 🔥 DL framework in **pure Numpy** 💨
 
+> Note: If you ever get lost about the gradient calculation for the Linear layer, re-watch [the fourth video Backpropagation by 3B1B](https://youtu.be/tIeHLnjs5U8), it will become very clear. Then you just need to match the size 😝.
+
 >⚠️ Warning: Work in progress.
+
 ## TODO
 - [ ] change maxpool2d: maxpool2dP can be achieved with single loop with im2col, check ManyFacedGodMaxPooling.py
 - [ ] implement optimizers class

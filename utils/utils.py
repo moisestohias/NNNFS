@@ -52,6 +52,7 @@ class Batcher:
   def __init__(self, DS, MBS=128, Shuffle=True): 
     self.MBS = MBS
     self.DS = DS
+    self.n_batches = (DS.shape[0] - 1) // MBS + 1
     if Shuffle: DS.xs, DS.ys = shuffle_data(DS.xs, DS.ys)
     self.counter = 0
     self.size = len(DS)
@@ -87,19 +88,33 @@ def splitDS(Size:int, Ratio:float = 0.8, Shuffle=True):
 def loadMnist(MNISTpath=None, Flat=True, Standardize=False, OneHot=False): # Mnist is already Flat and Normalized(0-1)
   """ This function should remain as it is, simple and self contained for quick testing (don't use Transform) """
   import requests, gzip, pickle, os
-  if MNISTpath is None: MNISTpath = "/media/moises/D/DLDS" if os.name == "posix" else "D/DLDS" # Nix or Win
-  url = 'https://github.com/mnielsen/neural-networks-and-deep-learning/raw/master/data/mnist.pkl.gz'
-  if not os.path.exists(os.path.join(MNISTpath, "mnist.pkl.gz")):
-    with open(os.path.join(MNISTpath, "mnist.pkl.gz"), "wb") as f:
+  if MNISTpath is None: MNISTpath = "~/.DLDS/"
+  if os.path.exists(MNISTpath): 
+    if os.path.isfile(MNISTpath): mnist_full_path = MNISTpath
+    else: mnist_full_path = os.path.join(MNISTpath, "mnist.pkl.gz") # MNISTpath is dir
+  else: os.makedirs(os.path.expanduser(MNISTpath))
+  if not os.path.exists(mnist_full_path):
+    url = 'https://github.com/mnielsen/neural-networks-and-deep-learning/raw/master/data/mnist.pkl.gz'
+    with open(mnist_full_path, "wb") as f:
       mnistPKLGZ = requests.get(url).content
       f.write(mnistPKLGZ)
   with gzip.open(os.path.join(MNISTpath, "mnist.pkl.gz"), "rb") as mn: 
     # ((50000, 784) (50000,)) ((10000, 784) (10000,)) ((10000, 784) (10000,))
     (xtr, ytr), (xva, yva), (xte, yte) = pickle.load(mn, encoding="latin-1") # tr, va, te
   if Standardize:
-    xtr = xtr-xtr.mean(axis=1)[:,None] # Standardizing per-sample (!wrong:change this)
-    xva = xva-xval.mean(axis=1)[:,None]
+    ### This centers each image individually without scaling (not deviding by the STD)
+    xtr = xtr-xtr.mean(axis=1)[:,None] # Standardizing per-sample (!Maybe Wrong: Below is correct)
+    xva = xva-xva.mean(axis=1)[:,None]
     xte = xte-xte.mean(axis=1)[:,None]
+
+    # ## Calculate mean and std dev from the training set
+    # mean = xtr.mean()
+    # std = xtr.std()
+    # ## Standardize all sets using the training set statistics
+    # xtr[True] = (xtr - mean) / std
+    # xva[True] = (xva - mean) / std
+    # xte[True] = (xte - mean) / std
+    
   if OneHot: ytr = one_hot(ytr, 10)
   if Flat: return (xtr, ytr), (xva, yva), (xte, yte) # tr, va, te 
   return (xtr.reshape(-1,1, 28, 28), ytr), (xva.reshape(-1,1, 28, 28), yva), (xte.reshape(-1,1, 28, 28), yte)
